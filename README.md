@@ -1,4 +1,4 @@
-# 📅 Schichtplan – iPhone-App
+# 📅 HAI Schichtplan – iPhone-App
 
 Einfacher Schichtplan für **Früh-, Spät- und Nachtschicht** mit **Feiertagen** und **Schulferien** aller 16 Bundesländer.
 Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bildschirm“). Du brauchst keinen App Store, keinen Mac und kein Entwicklerkonto.
@@ -11,11 +11,15 @@ Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bilds
   - 2 Schichten: Früh → Spät → Früh … (z. B. gerade KW Früh, ungerade KW Spät)
   - 3 Schichten: Früh → Spät → Nacht → Früh …
   - Wechsel jede Woche oder alle 2 Wochen, Arbeitstage Mo–Fr / Mo–Sa / Mo–So
+- **Urlaub**: Zeitraum von–bis eintragen. Die App zählt die Urlaubstage (nur Arbeitstage, ohne Feiertage) und zeigt
+  „genommen / geplant / Rest“ vom Jahresanspruch. Der Urlaub lässt sich als Termin in den iPhone-Kalender exportieren.
 - **Einzelne Tage ändern**: Frei, Urlaub, Krank oder eine andere Schicht, für einen Tag oder die ganze Woche
 - **Feiertage** für jedes Bundesland werden automatisch berechnet und im Kalender rot umrandet
 - **Schulferien** für jedes Bundesland (Anfang, Ende, Anzahl Tage) erscheinen im Kalender als grüner Balken
 - **Bundesland mit einem Klick** wechseln (Tab „Feiertage“)
 - **Monats- und Jahresübersicht**, Anzeige „Heute / Morgen“, Zählung der Schichten pro Monat
+- Oben auf **HAI Schichtplan** oder unten auf **Home** tippen, dann geht es zurück zur Startseite
+- **App-Link mit Kollegen teilen**: Jeder hat seine eigenen Daten
 - Farben und Schichtzeiten sind frei einstellbar, Hell- und Dunkelmodus werden unterstützt
 - **Export in den iPhone-Kalender** (.ics) und Sicherung/Wiederherstellung
 - Funktioniert **offline**, alle Daten bleiben auf dem iPhone
@@ -26,7 +30,7 @@ Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bilds
    `https://hainguyenkfz-gif.github.io/Schicht-Plan/`
 2. Diese Adresse auf dem iPhone in **Safari** öffnen
 3. Unten auf **Teilen** (Quadrat mit Pfeil) tippen und **„Zum Home-Bildschirm“** wählen
-4. Fertig! Das Schichtplan-Symbol liegt jetzt auf dem Home-Bildschirm wie eine normale App.
+4. Fertig! Das HAI-Schichtplan-Symbol liegt jetzt auf dem Home-Bildschirm wie eine normale App.
 
 ### Veröffentlichen mit GitHub Pages (kostenlos)
 

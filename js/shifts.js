@@ -39,8 +39,20 @@ export function addPlan(plans, plan) {
     .sort((a, b) => (a.start < b.start ? -1 : 1));
 }
 
-// Manuelle Einträge haben Vorrang vor dem automatischen Plan.
-export function shiftOn(data, s) {
+// Arbeitstag = Tag mit geplanter Schicht (ohne Plan: gewählte Wochentage), kein Feiertag.
+// Nur solche Tage zählen als Urlaubstag.
+export function isWorkday(data, s, isHoliday = () => false) {
+  if (isHoliday(s)) return false;
+  const seg = segmentFor(data.plans, s);
+  if (seg && s <= seg.end) return planShift(seg, s) !== null;
+  return ((data.setup && data.setup.workdays) || [0, 1, 2, 3, 4]).includes(weekday(s));
+}
+
+export const inVacation = (vacations, s) => (vacations || []).some((v) => v.start <= s && s <= v.end);
+
+// Vorrang: manueller Eintrag > Urlaubszeitraum (nur Arbeitstage) > automatischer Plan.
+export function shiftOn(data, s, isHoliday = () => false) {
   if (Object.prototype.hasOwnProperty.call(data.overrides, s)) return data.overrides[s];
+  if (inVacation(data.vacations, s) && isWorkday(data, s, isHoliday)) return 'U';
   return planShift(segmentFor(data.plans, s), s);
 }

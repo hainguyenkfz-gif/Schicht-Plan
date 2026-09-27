@@ -52,7 +52,21 @@ button { cursor: pointer; }
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
-.topbar h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+.brand-wrap { min-width: 0; }
+.brand {
+  border: 0; background: none; padding: 0; display: flex; align-items: baseline; gap: 7px;
+  font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 27px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap;
+}
+.brand .hai {
+  font-weight: 900; font-size: 30px; letter-spacing: .02em;
+  background: linear-gradient(100deg, #FFB300 0%, #FF5E7E 38%, #1E88E5 70%, #5E35B1 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .12));
+}
+.brand-rest { color: var(--text); }
+.subtitle { font-size: 13px; font-weight: 600; color: var(--muted); min-height: 0; }
+.subtitle:empty { display: none; }
 
 .pill {
   border: 0; border-radius: 999px; padding: 6px 14px;
@@ -63,8 +77,8 @@ main { max-width: 640px; margin: 0 auto; padding: 4px 16px 16px; }
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--card) 88%, transparent);
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
   border-top: 1px solid var(--line);
@@ -277,3 +291,23 @@ select { width: 100%; font-size: 17px; }
   background: rgba(28, 28, 30, .92); color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px;
   z-index: 30; max-width: calc(100% - 32px); text-align: center;
 }
+
+/* ---------- Urlaub ---------- */
+
+.vac-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin-bottom: 12px; }
+.vac-summary div { background: var(--soft); border-radius: 12px; padding: 10px 4px; }
+.vac-summary b { display: block; font-size: 24px; }
+.vac-summary small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.vac-summary .rest b { color: var(--U, #00ACC1); }
+.progress { height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; display: flex; }
+.progress i { display: block; height: 100%; }
+.vac-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.vac-form label { min-width: 0; }
+.vac-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.vac-form input { border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 9px 8px; width: 100%; min-width: 0; color: var(--text); font-size: 16px; }
+.vac-info { margin: 10px 0 0; font-weight: 600; }
+.del-btn { border: 0; background: none; font-size: 20px; padding: 4px 6px; color: var(--danger); }
+.inline-num { width: 70px; text-align: center; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 7px; font-size: 17px; font-weight: 700; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.credit { text-align: center; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
+.credit .hai { font-weight: 900; background: linear-gradient(100deg, #FFB300, #FF5E7E, #1E88E5, #5E35B1); -webkit-background-clip: text; background-clip: text; color: transparent; }

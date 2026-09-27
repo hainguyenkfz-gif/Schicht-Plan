@@ -1,6 +1,6 @@
 {
-  "name": "Schichtplan",
-  "short_name": "Schichtplan",
+  "name": "HAI Schichtplan",
+  "short_name": "HAI Schichtplan",
   "description": "Früh-, Spät- und Nachtschicht mit Feiertagen und Schulferien",
   "lang": "de",
   "start_url": "./",
