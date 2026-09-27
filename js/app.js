@@ -2,7 +2,7 @@ import {
   iso, addDays, weekday, mondayOf, isoWeek, todayISO, daysInMonth, daysBetween,
   MONTHS, WEEKDAYS, fmtShort, fmtDate, fmtLong,
 } from './dates.js';
-import { SHIFT_TYPES, buildOrder, addPlan, shiftOn } from './shifts.js';
+import { SHIFT_TYPES, buildOrder, addPlan, shiftOn, isWorkday } from './shifts.js';
 import { STATES, stateName, publicHolidays, loadSchoolHolidays } from './holidays.js';
 
 // ---------------------------------------------------------------- Daten
@@ -19,6 +19,8 @@ function defaults() {
   return {
     plans: [],
     overrides: {},
+    vacations: [],
+    vacationDays: 30,
     bl: 'HE',
     colors: { ...DEFAULT_COLORS },
     times: { F: ['06:00', '14:00'], S: ['14:00', '22:00'], N: ['22:00', '06:00'] },
@@ -99,6 +101,8 @@ function holidayMap(y) {
   return holMemo.get(k);
 }
 const holidayOn = (s) => holidayMap(+s.slice(0, 4)).get(s) || null;
+const isFullHoliday = (s) => { const h = holidayOn(s); return !!h && !h.partial; };
+const dayCode = (s) => shiftOn(data, s, isFullHoliday);
 
 const ferienState = {};
 function ferien(y) {
@@ -127,7 +131,7 @@ function ferienOn(s) {
 // ---------------------------------------------------------------- Ansicht: Monat
 
 function dayCell(s, month) {
-  const code = shiftOn(data, s);
+  const code = dayCode(s);
   const hol = holidayOn(s);
   const fer = ferienOn(s);
   const cls = ['day'];
@@ -159,7 +163,7 @@ function renderMonth() {
 
   const counts = {};
   for (let d = 1; d <= daysInMonth(y, m); d++) {
-    const c = shiftOn(data, iso(y, m, d));
+    const c = dayCode(iso(y, m, d));
     if (c) counts[c] = (counts[c] || 0) + 1;
   }
   const stats = Object.keys(SHIFT_TYPES).filter((c) => counts[c])
@@ -178,9 +182,9 @@ function renderMonth() {
   events.sort((a, b) => (a.s < b.s ? -1 : 1));
 
   const t = todayISO();
-  const todayCode = shiftOn(data, t);
-  const tomorrowCode = shiftOn(data, addDays(t, 1));
-  const hasPlan = data.plans.length || Object.keys(data.overrides).length;
+  const todayCode = dayCode(t);
+  const tomorrowCode = dayCode(addDays(t, 1));
+  const hasPlan = data.plans.length || data.vacations.length || Object.keys(data.overrides).length;
 
   return `
     ${hasPlan ? `
@@ -232,7 +236,7 @@ function renderYear() {
     for (let i = 0; i < weekday(first); i++) cells += '<i></i>';
     for (let d = 1; d <= daysInMonth(y, m); d++) {
       const s = iso(y, m, d);
-      const code = shiftOn(data, s);
+      const code = dayCode(s);
       const hol = holidayOn(s);
       const fer = ferienOn(s);
       const cls = [hol && !hol.partial ? 'hol' : '', fer ? 'fer' : '', s === todayISO() ? 'today' : ''].join(' ');
@@ -404,7 +408,107 @@ function renderSettings() {
       <label class="btn file">📂 Sicherung laden<input type="file" accept="application/json,.json" id="restore" hidden></label>
       <button type="button" class="btn danger" data-clear>🗑️ Alle Schichten löschen</button>
     </div>
+    <div class="card">
+      <h3>Mit Kollegen teilen</h3>
+      <p class="muted small">Jeder bekommt seinen eigenen, leeren Schichtplan. Deine Einträge bleiben bei dir.</p>
+      <button type="button" class="btn primary" data-shareapp>📤 App-Link teilen</button>
+    </div>
     <p class="muted small center">Alle Daten bleiben nur auf deinem iPhone gespeichert.</p>
+    <p class="credit"><span class="hai">HAI</span> Schichtplan · © ${new Date().getFullYear()} Hai</p>
+  `;
+}
+
+// ---------------------------------------------------------------- Ansicht: Urlaub
+
+// Zählt die Urlaubstage (nur Arbeitstage, ohne Feiertage) in einem Zeitraum.
+function countVacation(start, end) {
+  let n = 0;
+  for (let d = start; d <= end; d = addDays(d, 1)) if (isWorkday(data, d, isFullHoliday)) n++;
+  return n;
+}
+
+function vacInfoText(from, to) {
+  if (!from || !to) return 'Bitte Anfang und Ende wählen.';
+  if (to < from) return '⚠️ Das Ende liegt vor dem Anfang.';
+  const n = countVacation(from, to);
+  const all = daysBetween(from, to) + 1;
+  return `= ${n} Urlaubstag${n === 1 ? '' : 'e'} (${all} Kalendertag${all === 1 ? '' : 'e'}, freie Tage und Feiertage zählen nicht)`;
+}
+
+function renderVacation() {
+  const y = ui.year;
+  const t = todayISO();
+  let used = 0;
+  let planned = 0;
+  const singles = [];
+  for (let d = `${y}-01-01`; d <= `${y}-12-31`; d = addDays(d, 1)) {
+    if (dayCode(d) !== 'U') continue;
+    if (d <= t) used++; else planned++;
+    if (data.overrides[d] === 'U' && !data.vacations.some((v) => v.start <= d && d <= v.end)) singles.push(d);
+  }
+  const total = Math.max(0, +data.vacationDays || 0);
+  const rest = total - used - planned;
+  const pct = (n) => (total ? Math.min(100, (n / total) * 100) : 0);
+
+  const list = data.vacations
+    .filter((v) => v.end >= `${y}-01-01` && v.start <= `${y}-12-31`)
+    .sort((a, b) => (a.start < b.start ? -1 : 1))
+    .map((v) => {
+      const n = countVacation(v.start, v.end);
+      const now = v.start <= t && t <= v.end;
+      const rel = now ? 'läuft gerade' : inDays(v.start);
+      return `<li class="${v.end < t ? 'past' : ''}">
+        <span class="date-badge" style="--c:${colorOf('U')}"><b>${+v.start.slice(8)}</b><small>${MONTHS[+v.start.slice(5, 7) - 1].slice(0, 3)}</small></span>
+        <span class="grow"><b>${n} Urlaubstag${n === 1 ? '' : 'e'}</b>
+          <small>${WEEKDAYS[weekday(v.start)]}, ${fmtDate(v.start)} – ${WEEKDAYS[weekday(v.end)]}, ${fmtDate(v.end)}</small>
+          ${rel ? `<small class="rel ${now ? 'now' : ''}">${rel}</small>` : ''}</span>
+        <button type="button" class="del-btn" data-delvac="${v.id}" aria-label="Urlaub löschen">🗑️</button>
+      </li>`;
+    }).join('');
+
+  const from = ui.vacFrom || '';
+  const to = ui.vacTo || '';
+
+  return `
+    <div class="month-nav">
+      <button type="button" class="icon-btn" data-ynav="-1" aria-label="Vorheriges Jahr">‹</button>
+      <h2>Urlaub ${y}</h2>
+      <button type="button" class="icon-btn" data-ynav="1" aria-label="Nächstes Jahr">›</button>
+    </div>
+
+    <div class="card">
+      <div class="vac-summary">
+        <div><b>${used}</b><small>genommen</small></div>
+        <div><b>${planned}</b><small>geplant</small></div>
+        <div class="rest"><b style="color:${rest < 0 ? 'var(--danger)' : colorOf('U')}">${rest}</b><small>Rest</small></div>
+      </div>
+      <div class="progress" aria-hidden="true">
+        <i style="width:${pct(used)}%;background:${colorOf('U')}"></i>
+        <i style="width:${pct(planned)}%;background:${colorOf('U')};opacity:.45"></i>
+      </div>
+      <div class="row-between" style="margin-top:14px">
+        <span>Urlaubsanspruch ${y}</span>
+        <span><input type="number" inputmode="numeric" min="0" max="366" class="inline-num" id="vacTotal" value="${total}"> Tage</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏖️ Urlaub eintragen</h3>
+      <div class="vac-form">
+        <label>Von<input type="date" id="vacFrom" value="${from}"></label>
+        <label>Bis<input type="date" id="vacTo" value="${to}"></label>
+      </div>
+      <p class="vac-info" id="vacInfo">${vacInfoText(from, to)}</p>
+      <button type="button" class="btn primary big" data-addvac>✓ Urlaub eintragen</button>
+    </div>
+
+    <div class="card">
+      <h3>Mein Urlaub ${y}</h3>
+      ${list ? `<ul class="list">${list}</ul>` : '<p class="muted">Noch kein Urlaub eingetragen.</p>'}
+      ${singles.length ? `<p class="muted small">Einzelne Urlaubstage aus dem Kalender: ${singles.map(fmtShort).join(', ')}</p>` : ''}
+      <button type="button" class="btn" data-vacics>📲 Urlaub in iPhone-Kalender exportieren</button>
+    </div>
+    <p class="muted small center">Als Urlaubstag zählen nur Tage, an denen du laut Plan arbeiten würdest – ohne Feiertage.</p>
   `;
 }
 
@@ -412,7 +516,7 @@ function renderSettings() {
 
 function openSheet(s) {
   ui.sheetDate = s;
-  ui.sheetSel = shiftOn(data, s) || data.setup.startShift || 'F';
+  ui.sheetSel = dayCode(s) || data.setup.startShift || 'F';
   renderSheet();
   $('#sheet').hidden = false;
   requestAnimationFrame(() => $('#sheet').classList.add('open'));
@@ -431,7 +535,7 @@ function renderSheet() {
   const kw = isoWeek(s).week;
   const hol = holidayOn(s);
   const fer = ferienOn(s);
-  const current = shiftOn(data, s);
+  const current = dayCode(s);
   const isOverride = Object.prototype.hasOwnProperty.call(data.overrides, s);
   const opts = [...buildOrder(data.setup.count, data.setup.direction), 'X', 'U', 'K'];
   if (current === 'N' && !opts.includes('N')) opts.splice(2, 0, 'N');
@@ -451,6 +555,7 @@ function renderSheet() {
     <div class="actions">
       ${SHIFT_TYPES[sel].work ? `<button type="button" class="btn primary big" data-act="auto">
         ⚡ Ab dieser Woche „${SHIFT_TYPES[sel].name}“ – automatisch bis Ende ${endY}</button>` : ''}
+      ${sel === 'U' ? `<button type="button" class="btn primary big" data-act="vacrange">🏖️ Urlaub ab hier – Zeitraum eintragen</button>` : ''}
       <button type="button" class="btn" data-act="day">Nur diesen Tag: ${SHIFT_TYPES[sel].name}</button>
       <button type="button" class="btn" data-act="week">Ganze Woche (KW ${kw}): ${SHIFT_TYPES[sel].name}</button>
       ${isOverride ? '<button type="button" class="btn" data-act="reset">↺ Zurück zum automatischen Plan</button>' : ''}
@@ -474,6 +579,13 @@ function applyAuto(s, code) {
 function sheetAction(act) {
   const s = ui.sheetDate;
   const sel = ui.sheetSel;
+  if (act === 'vacrange') {
+    ui.vacFrom = s;
+    ui.vacTo = s;
+    ui.year = +s.slice(0, 4);
+    closeSheet();
+    return setTab('vacation');
+  }
   if (act === 'auto') applyAuto(s, sel);
   else if (act === 'day') data.overrides[s] = sel;
   else if (act === 'week') {
@@ -490,6 +602,14 @@ function sheetAction(act) {
 
 function downloadFile(name, text, type) {
   const blob = new Blob([text], { type });
+  // Als Home-Bildschirm-App gehen Downloads auf dem iPhone nicht zuverlässig – dort das Teilen-Menü nutzen.
+  if (navigator.standalone && typeof File !== 'undefined') {
+    const file = new File([blob], name, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: name }).catch(() => {});
+      return;
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
@@ -498,18 +618,46 @@ function downloadFile(name, text, type) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
 
+const icsStamp = () => new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+const icsHead = (name) => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//HAI Schichtplan//DE', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${name}`];
+
+// Ein Termin pro zusammenhängendem Urlaub (auch einzelne Urlaubstage aus dem Kalender).
+function buildVacationICS() {
+  const days = new Set();
+  for (const v of data.vacations) for (let d = v.start; d <= v.end; d = addDays(d, 1)) days.add(d);
+  for (const [d, c] of Object.entries(data.overrides)) if (c === 'U') days.add(d); else days.delete(d);
+  const sorted = [...days].sort();
+  const ranges = [];
+  for (const d of sorted) {
+    const last = ranges[ranges.length - 1];
+    if (last && addDays(last.end, 1) === d) last.end = d; else ranges.push({ start: d, end: d });
+  }
+  const stamp = icsStamp();
+  const compact = (x) => x.replace(/-/g, '');
+  const lines = icsHead('Urlaub');
+  for (const r of ranges) {
+    const n = countVacation(r.start, r.end);
+    lines.push('BEGIN:VEVENT', `UID:urlaub-${r.start}-${r.end}@hai-schichtplan`, `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${compact(r.start)}`, `DTEND;VALUE=DATE:${compact(addDays(r.end, 1))}`,
+      `SUMMARY:🏖️ Urlaub (${n} ${n === 1 ? 'Tag' : 'Tage'})`, 'TRANSP:TRANSPARENT', 'END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return { text: lines.join('\r\n'), n: ranges.length };
+}
+
 function buildICS() {
   const dates = new Set(Object.keys(data.overrides));
   for (const p of data.plans) for (let d = p.start; d <= p.end; d = addDays(d, 1)) dates.add(d);
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  for (const v of data.vacations) for (let d = v.start; d <= v.end; d = addDays(d, 1)) dates.add(d);
+  const stamp = icsStamp();
   const compact = (s) => s.replace(/-/g, '');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Schichtplan//DE', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Schichtplan'];
+  const lines = icsHead('HAI Schichtplan');
   let n = 0;
   for (const s of [...dates].sort()) {
-    const code = shiftOn(data, s);
+    const code = dayCode(s);
     if (!code || code === 'X') continue;
     const t = SHIFT_TYPES[code];
-    lines.push('BEGIN:VEVENT', `UID:${s}-${code}@schichtplan`, `DTSTAMP:${stamp}`);
+    lines.push('BEGIN:VEVENT', `UID:${s}-${code}@hai-schichtplan`, `DTSTAMP:${stamp}`);
     if (t.work) {
       const [from, to] = data.times[code];
       const endDay = to <= from ? addDays(s, 1) : s;
@@ -527,18 +675,18 @@ function buildICS() {
 
 // ---------------------------------------------------------------- Rendern & Ereignisse
 
-const TITLES = { month: 'Schichtplan', year: 'Jahresübersicht', holidays: 'Feiertage & Ferien', settings: 'Mein Plan' };
+const TITLES = { month: '', year: 'Jahresübersicht', vacation: 'Mein Urlaub', holidays: 'Feiertage & Ferien', settings: 'Mein Plan' };
 
 function render() {
   const view = $('#view');
   const html = ui.tab === 'month' ? renderMonth()
     : ui.tab === 'year' ? renderYear()
-      : ui.tab === 'holidays' ? renderHolidays() : renderSettings();
+      : ui.tab === 'vacation' ? renderVacation()
+        : ui.tab === 'holidays' ? renderHolidays() : renderSettings();
   view.innerHTML = html;
   document.documentElement.style.setProperty('--hol', colorOf('holiday'));
   document.documentElement.style.setProperty('--fer', colorOf('ferien'));
   $('#title').textContent = TITLES[ui.tab];
-  $('#todayBtn').hidden = !['month', 'year', 'holidays'].includes(ui.tab);
   document.querySelectorAll('.tabbar button').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
   if (ui.sheetDate) renderSheet();
 }
@@ -569,6 +717,7 @@ document.addEventListener('click', (e) => {
   if (!t) return;
   const d = t.dataset;
 
+  if (d.home !== undefined) return goToday('month');
   if (d.tab) return setTab(d.tab);
   if (d.goto) return setTab(d.goto);
   if (d.close !== undefined) return closeSheet();
@@ -579,6 +728,41 @@ document.addEventListener('click', (e) => {
   if (d.bl) return changeState(d.bl);
   if (d.pick) { ui.sheetSel = d.pick; return renderSheet(); }
   if (d.act) return sheetAction(d.act);
+  if (d.delvac) {
+    if (!confirm('Diesen Urlaub löschen?')) return;
+    data.vacations = data.vacations.filter((v) => v.id !== d.delvac);
+    save();
+    toast('Urlaub gelöscht');
+    return render();
+  }
+  if (d.addvac !== undefined) {
+    const from = ui.vacFrom;
+    const to = ui.vacTo;
+    if (!from || !to) return toast('Bitte Anfang und Ende wählen');
+    if (to < from) return toast('Das Ende liegt vor dem Anfang');
+    data.vacations.push({ id: Date.now().toString(36), start: from, end: to });
+    save();
+    ui.vacFrom = '';
+    ui.vacTo = '';
+    toast(`✓ ${countVacation(from, to)} Urlaubstage eingetragen`);
+    return render();
+  }
+  if (d.vacics !== undefined) {
+    const { text, n } = buildVacationICS();
+    if (!n) return toast('Noch kein Urlaub eingetragen');
+    downloadFile('urlaub.ics', text, 'text/calendar');
+    return toast(`${n} Urlaub-Termin${n === 1 ? '' : 'e'} – Datei öffnen und „Alle hinzufügen“ tippen`);
+  }
+  if (d.shareapp !== undefined) {
+    const url = location.href.split('#')[0];
+    if (navigator.share) {
+      navigator.share({ title: 'HAI Schichtplan', text: 'Mein Schichtplan mit Feiertagen & Ferien – kostenlos:', url }).catch(() => {});
+    } else {
+      navigator.clipboard && navigator.clipboard.writeText(url);
+      toast('Link kopiert');
+    }
+    return;
+  }
   if (d.retry !== undefined) { delete ferienState[`${data.bl}:${ui.year}`]; return render(); }
 
   const segEl = t.closest('[data-seg]');
@@ -620,10 +804,26 @@ document.addEventListener('click', (e) => {
   }
 });
 
+function onVacInput(el) {
+  if (el.id === 'vacFrom') {
+    ui.vacFrom = el.value;
+    const toEl = $('#vacTo');
+    if (el.value && (!ui.vacTo || ui.vacTo < el.value)) { ui.vacTo = el.value; if (toEl) toEl.value = el.value; }
+  } else ui.vacTo = el.value;
+  const info = $('#vacInfo');
+  if (info) info.textContent = vacInfoText(ui.vacFrom, ui.vacTo);
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'vacFrom' || e.target.id === 'vacTo') onVacInput(e.target);
+});
+
 document.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.id === 'vacFrom' || el.id === 'vacTo') return onVacInput(el);
   if (el.id === 'startDate' && el.value) { data.setup.start = mondayOf(el.value); save(); render(); }
   else if (el.id === 'blSelect') changeState(el.value);
+  else if (el.id === 'vacTotal') { data.vacationDays = Math.max(0, parseInt(el.value, 10) || 0); save(); render(); }
   else if (el.dataset.color) { data.colors[el.dataset.color] = el.value; save(); render(); }
   else if (el.dataset.time) {
     const [k, i] = el.dataset.time.split(':');
@@ -642,12 +842,15 @@ document.addEventListener('change', (e) => {
   }
 });
 
-$('#todayBtn').addEventListener('click', () => {
+function goToday(tab) {
   const t = todayISO();
   ui.cursor = { y: +t.slice(0, 4), m: +t.slice(5, 7) };
   ui.year = +t.slice(0, 4);
+  if (tab) return setTab(tab);
   render();
-});
+}
+
+$('#todayBtn').addEventListener('click', () => goToday(ui.tab === 'settings' ? 'month' : null));
 
 // Wischen im Monatskalender
 let touchX = null;

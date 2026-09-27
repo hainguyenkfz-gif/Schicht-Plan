@@ -109,3 +109,18 @@ test('Ferien laden: OpenHolidays, Ausweichquelle und Cache', async () => {
 
   await assert.rejects(loadSchoolHolidays(2026, 'NI', { fetchImpl: fail, storage: memStorage() }));
 });
+
+test('Urlaub: nur Arbeitstage ohne Feiertage, manueller Eintrag hat Vorrang', async () => {
+  const { isWorkday } = await import('../js/shifts.js');
+  const plan = { order: ['F', 'S'], start: '2026-09-28', startIndex: 0, weeksPer: 1, workdays: [0, 1, 2, 3, 4], end: '2026-12-31' };
+  const data = { plans: [plan], overrides: { '2026-10-07': 'K' }, vacations: [{ id: 'a', start: '2026-10-01', end: '2026-10-09' }], setup: { workdays: [0, 1, 2, 3, 4] } };
+  const hol = (s) => s === '2026-10-03';
+  const codes = [];
+  for (let d = '2026-10-01'; d <= '2026-10-09'; d = addDays(d, 1)) codes.push(shiftOn(data, d, hol));
+  // Do Fr Sa So Mo Di Mi(Krank) Do Fr
+  assert.deepEqual(codes, ['U', 'U', null, null, 'U', 'U', 'K', 'U', 'U']);
+  assert.equal(shiftOn(data, '2026-10-12', hol), 'F');
+  assert.equal(isWorkday(data, '2026-10-03', hol), false);
+  // Ohne Plan zählen die gewählten Wochentage
+  assert.equal(isWorkday({ plans: [], setup: { workdays: [0, 1, 2, 3, 4, 5] } }, '2026-10-10'), true);
+});

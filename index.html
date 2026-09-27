@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Schichtplan</title>
-  <meta name="description" content="Schichtplan für Früh-, Spät- und Nachtschicht mit Feiertagen und Schulferien aller Bundesländer.">
+  <title>HAI Schichtplan</title>
+  <meta name="description" content="HAI Schichtplan – Schichtplan für Früh-, Spät- und Nachtschicht mit Feiertagen und Schulferien aller Bundesländer.">
   <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Schichtplan">
+  <meta name="apple-mobile-web-app-title" content="HAI Schichtplan">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
@@ -18,15 +18,21 @@
 </head>
 <body>
   <header class="topbar">
-    <h1 id="title">Schichtplan</h1>
+    <div class="brand-wrap">
+      <button id="brand" class="brand" type="button" data-home aria-label="HAI Schichtplan – zur Startseite">
+        <span class="hai">HAI</span><span class="brand-rest">Schichtplan</span>
+      </button>
+      <div id="title" class="subtitle"></div>
+    </div>
     <button id="todayBtn" class="pill" type="button">Heute</button>
   </header>
 
   <main id="view" aria-live="polite"></main>
 
   <nav class="tabbar" aria-label="Navigation">
-    <button data-tab="month" class="active" type="button"><span class="ico">📅</span><span>Monat</span></button>
+    <button data-tab="month" class="active" type="button"><span class="ico">🏠</span><span>Home</span></button>
     <button data-tab="year" type="button"><span class="ico">🗓️</span><span>Jahr</span></button>
+    <button data-tab="vacation" type="button"><span class="ico">🏖️</span><span>Urlaub</span></button>
     <button data-tab="holidays" type="button"><span class="ico">🎉</span><span>Feiertage</span></button>
     <button data-tab="settings" type="button"><span class="ico">⚙️</span><span>Plan</span></button>
   </nav>
