@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Schichtplan</title>
+  <meta name="description" content="Schichtplan für Früh-, Spät- und Nachtschicht mit Feiertagen und Schulferien aller Bundesländer.">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Schichtplan">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="title">Schichtplan</h1>
+    <button id="todayBtn" class="pill" type="button">Heute</button>
+  </header>
+
+  <main id="view" aria-live="polite"></main>
+
+  <nav class="tabbar" aria-label="Navigation">
+    <button data-tab="month" class="active" type="button"><span class="ico">📅</span><span>Monat</span></button>
+    <button data-tab="year" type="button"><span class="ico">🗓️</span><span>Jahr</span></button>
+    <button data-tab="holidays" type="button"><span class="ico">🎉</span><span>Feiertage</span></button>
+    <button data-tab="settings" type="button"><span class="ico">⚙️</span><span>Plan</span></button>
+  </nav>
+
+  <div id="sheet" class="sheet-wrap" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="grabber"></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
