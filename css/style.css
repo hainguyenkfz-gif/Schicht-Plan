@@ -327,7 +327,7 @@ select { width: 100%; font-size: 17px; }
 .minus { color: var(--minus); }
 .zero { color: var(--muted); }
 
-.lcd { display: inline-flex; align-items: baseline; gap: 2px; font-weight: 700; line-height: 1; }
+.lcd { display: inline-flex; align-items: center; gap: 2px; font-weight: 700; line-height: 1; }
 .lcd-sign { font-size: .9em; font-weight: 800; min-width: .5em; }
 .lcd-num { position: relative; font-family: "DSEG7", ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .02em; }
 .lcd-num .ghost { position: absolute; inset: 0; opacity: .1; }
