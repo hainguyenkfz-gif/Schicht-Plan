@@ -13,6 +13,9 @@ Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bilds
   - Wechsel jede Woche oder alle 2 Wochen, Arbeitstage Mo–Fr / Mo–Sa / Mo–So
 - **Urlaub**: Zeitraum von–bis eintragen. Die App zählt die Urlaubstage (nur Arbeitstage, ohne Feiertage) und zeigt
   „genommen / geplant / Rest“ vom Jahresanspruch. Der Urlaub lässt sich als Termin in den iPhone-Kalender exportieren.
+- **Vorholzeit (Zeitkonto)**: Stand aus dem Firmen-System übernehmen und Plus- bzw. Minus-Stunden in Industriestunden
+  (0.25 = 15 Min) eintragen. Die App rechnet Aktuell / Geplant / Verfügbar wie im Firmen-System. Die Anzeige erfolgt
+  als Digitalzahl, grün bei Plus und rot bei Minus. Auf der Startseite steht der Stand unten rechts.
 - **Einzelne Tage ändern**: Frei, Urlaub, Krank oder eine andere Schicht, für einen Tag oder die ganze Woche
 - **Feiertage** für jedes Bundesland werden automatisch berechnet und im Kalender rot umrandet
 - **Schulferien** für jedes Bundesland (Anfang, Ende, Anzahl Tage) erscheinen im Kalender als grüner Balken
@@ -48,6 +51,10 @@ Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bilds
 - **Schulferien** werden online von [openholidaysapi.org](https://www.openholidaysapi.org) geladen
   (Ausweichquelle: [ferien-api.de](https://ferien-api.de)) und 30 Tage lang auf dem Gerät gespeichert,
   damit sie auch offline angezeigt werden. Alle Angaben ohne Gewähr.
+
+## Schriften
+
+Digitalanzeige: DSEG7 Classic von keshikan, SIL Open Font License 1.1 (`fonts/DSEG-LICENSE.txt`).
 
 ## Entwicklung
 
