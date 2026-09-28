@@ -4,6 +4,7 @@ import {
 } from './dates.js';
 import { SHIFT_TYPES, buildOrder, addPlan, shiftOn, isWorkday } from './shifts.js';
 import { STATES, stateName, publicHolidays, loadSchoolHolidays } from './holidays.js';
+import { round2, parseHours, fmtHours, fmtHM, vorholBalance } from './vorhol.js';
 
 // ---------------------------------------------------------------- Daten
 
@@ -21,6 +22,7 @@ function defaults() {
     overrides: {},
     vacations: [],
     vacationDays: 30,
+    vorhol: { start: 0, startDate: '', entries: {} },
     bl: 'HE',
     colors: { ...DEFAULT_COLORS },
     times: { F: ['06:00', '14:00'], S: ['14:00', '22:00'], N: ['22:00', '06:00'] },
@@ -41,6 +43,7 @@ function load() {
         colors: { ...base.colors, ...saved.colors },
         times: { ...base.times, ...saved.times },
         setup: { ...base.setup, ...saved.setup },
+        vorhol: { ...base.vorhol, ...saved.vorhol },
       };
     }
   } catch { /* leer oder gesperrt */ }
@@ -55,6 +58,8 @@ const ui = {
   cursor: { y: +todayISO().slice(0, 4), m: +todayISO().slice(5, 7) },
   year: +todayISO().slice(0, 4),
   sheetDate: null,
+  sheetMode: null,
+  vhSign: 1,
   sheetSel: null,
 };
 
@@ -146,6 +151,7 @@ function dayCell(s, month) {
     ${code ? `<span class="tag">${SHIFT_TYPES[code].short}</span>` : '<span class="tag"></span>'}
     ${hol ? '<span class="hol-dot"></span>' : ''}
     ${fer ? '<span class="fer-bar"></span>' : ''}
+    ${data.vorhol.entries[s] ? `<span class="vh-mark ${data.vorhol.entries[s] > 0 ? 'plus' : 'minus'}"></span>` : ''}
   </button>`;
 }
 
@@ -210,7 +216,7 @@ function renderMonth() {
       ${rows}
     </div>
     ${legend()}
-    ${stats ? `<div class="stats">${stats}</div>` : ''}
+    <div class="stats">${stats}${vorholTile()}</div>
     ${events.length ? `<div class="card"><h3>Feiertage &amp; Ferien · ${esc(stateName(data.bl))}</h3><ul class="events">${events.map((e) => `<li>${e.html}</li>`).join('')}</ul></div>` : ''}
   `;
 }
@@ -512,24 +518,145 @@ function renderVacation() {
   `;
 }
 
+// ---------------------------------------------------------------- Vorholzeit
+
+const vhClass = (x) => (round2(x) > 0 ? 'plus' : round2(x) < 0 ? 'minus' : 'zero');
+
+// Digitalanzeige im 7-Segment-Stil (mit schwachen „88.88“-Segmenten dahinter)
+function lcd(x, size = '') {
+  const v = round2(x);
+  const num = Math.abs(v).toFixed(2);
+  return `<span class="lcd ${vhClass(v)} ${size}"><span class="lcd-sign">${v > 0 ? '+' : v < 0 ? '−' : ''}</span><span class="lcd-num"><span class="ghost" aria-hidden="true">${num.replace(/\d/g, '8')}</span><span>${num}</span></span></span>`;
+}
+
+const vorholSetUp = () => !!(data.vorhol.startDate || Object.keys(data.vorhol.entries).length);
+
+function vorholTile() {
+  if (!vorholSetUp()) return '<button type="button" class="vh-tile setup" data-vorhol>⏱️ Vorholzeit einrichten</button>';
+  const b = vorholBalance(data.vorhol, todayISO());
+  return `<button type="button" class="vh-tile ${vhClass(b.available)}" data-vorhol aria-label="Vorholzeit ${fmtHours(b.available)} Stunden">
+    <small>⏱️ Vorholzeit</small>${lcd(b.available)}<small>Std</small></button>`;
+}
+
+function vorholDayBox(s) {
+  const h = data.vorhol.entries[s] || 0;
+  return `<div class="vh-day">
+    <h4>⏱️ Vorholzeit an diesem Tag</h4>
+    <div class="vh-stepper">
+      <button type="button" class="step minus" data-vhstep="-0.25" aria-label="15 Minuten weniger">−</button>
+      <div class="vh-val">${lcd(h, 'mid')}<small>${h ? fmtHM(h) : 'keine'}</small></div>
+      <button type="button" class="step plus" data-vhstep="0.25" aria-label="15 Minuten mehr">+</button>
+    </div>
+    <div class="vh-quick">
+      ${[-8, -1, -0.5, 0.5, 1, 2].map((q) => `<button type="button" data-vhstep="${q}" class="${q > 0 ? 'plus' : 'minus'}">${q > 0 ? '+' : '−'}${Math.abs(q).toFixed(2)}</button>`).join('')}
+    </div>
+    ${h ? '<button type="button" class="btn ghost small-btn" data-vhclear>Eintrag löschen</button>' : ''}
+  </div>`;
+}
+
+function renderVorholSheet() {
+  const v = data.vorhol;
+  const t = todayISO();
+  const b = vorholBalance(v, t);
+  const entries = Object.entries(v.entries).sort((a, c) => (a[0] < c[0] ? 1 : -1));
+  const list = entries.map(([d, h]) => {
+    const old = v.startDate && d <= v.startDate;
+    return `<li class="${old ? 'past' : ''}">
+      <button type="button" class="grow link" data-date="${d}"><b>${WEEKDAYS[weekday(d)]}, ${fmtDate(d)}</b>
+        <small>${fmtHM(h)}${old ? ' · im Startwert enthalten' : d > t ? ' · geplant' : ''}</small></button>
+      <span class="vh-amount ${vhClass(h)}">${fmtHours(h)}</span>
+      <button type="button" class="del-btn" data-vhdel="${d}" aria-label="Eintrag löschen">🗑️</button>
+    </li>`;
+  }).join('');
+  const row = (label, val, date = '') => `<div class="vh-row"><span>${label}${date ? ` <small>${date}</small>` : ''}</span><b class="${vhClass(val)}">${fmtHours(val)} Std</b></div>`;
+
+  $('#sheetBody').innerHTML = `
+    <h2 id="sheetTitle">⏱️ Vorholzeit</h2>
+    <div class="vh-display ${vhClass(b.available)}">
+      <small>Verfügbar</small>
+      ${lcd(b.available, 'big')}
+      <small>Std · ${fmtHM(b.available)}</small>
+    </div>
+    <div class="vh-table">
+      ${row('Stand Firma', b.start, v.startDate ? `vom ${fmtDate(v.startDate)}` : '')}
+      ${row('Seitdem eingetragen', b.done)}
+      ${row('Aktuell', b.current, `(${fmtShort(t)})`)}
+      ${row('Geplant', b.planned)}
+      ${row('Verfügbar', b.available)}
+    </div>
+
+    <h3>Stunden eintragen</h3>
+    <div class="vh-form">
+      <label>Datum<input type="date" id="vhDate" value="${ui.vhDate || t}"></label>
+      <div class="seg vh-sign">
+        <button type="button" data-vhsign="1" class="${ui.vhSign > 0 ? 'active plus' : ''}">＋ Plus</button>
+        <button type="button" data-vhsign="-1" class="${ui.vhSign < 0 ? 'active minus' : ''}">− Minus</button>
+      </div>
+      <label>Stunden<input type="text" inputmode="decimal" id="vhHours" placeholder="z. B. 0.25 oder 1:30" value="${ui.vhHours || ''}"></label>
+      <div class="vh-quick">${[0.25, 0.5, 0.75, 1, 2, 8].map((q) => `<button type="button" data-vhq="${q}">${q.toFixed(2)}</button>`).join('')}</div>
+      <p class="muted small" id="vhHint">${vhHint()}</p>
+      <button type="button" class="btn primary big" data-vhadd>✓ Eintragen</button>
+    </div>
+
+    <details class="vh-start" ${v.startDate ? '' : 'open'}>
+      <summary>Stand aus der Firma übernehmen</summary>
+      <p class="muted small">Trage den Wert „Aktuell“ aus dem Firmen-System ein, z. B. 11.65 Std vom 27.09.2026.
+        Einträge bis zu diesem Datum sind darin schon enthalten.</p>
+      <div class="vac-form">
+        <label>Stunden<input type="text" inputmode="decimal" id="vhStart" value="${v.startDate ? v.start : ''}" placeholder="z. B. 11.65 oder -3.5"></label>
+        <label>Stand vom<input type="date" id="vhStartDate" value="${v.startDate || t}"></label>
+      </div>
+      <button type="button" class="btn" data-vhsavestart>Stand speichern</button>
+    </details>
+
+    <h3>Einträge</h3>
+    ${list ? `<ul class="list">${list}</ul>` : '<p class="muted">Noch keine Einträge.</p>'}
+    <p class="muted small">0.25 Std = 15 Min · 0.50 Std = 30 Min · 0.75 Std = 45 Min</p>
+    <button type="button" class="btn ghost" data-close>Schließen</button>`;
+}
+
+function vhHint() {
+  const h = parseHours(ui.vhHours);
+  if (ui.vhHours && h === null) return '⚠️ Bitte eine Zahl eingeben, z. B. 0.25, 1,5 oder 1:30';
+  if (!h) return 'Plus = Überstunden, Minus = früher gegangen / Freischicht';
+  const v = ui.vhSign * Math.abs(h);
+  return `= ${fmtHours(v)} Std (${v < 0 ? 'minus ' : 'plus '}${fmtHM(v)})`;
+}
+
+function addVorhol(date, hours) {
+  const e = data.vorhol.entries;
+  const v = round2((e[date] || 0) + hours);
+  if (v) e[date] = v; else delete e[date];
+  save();
+}
+
 // ---------------------------------------------------------------- Tages-Blatt
+
+function showSheet(mode) {
+  ui.sheetMode = mode;
+  renderSheet();
+  const el = $('#sheet');
+  el.hidden = false;
+  el.querySelector('.sheet').scrollTop = 0;
+  requestAnimationFrame(() => el.classList.add('open'));
+}
 
 function openSheet(s) {
   ui.sheetDate = s;
   ui.sheetSel = dayCode(s) || data.setup.startShift || 'F';
-  renderSheet();
-  $('#sheet').hidden = false;
-  requestAnimationFrame(() => $('#sheet').classList.add('open'));
+  showSheet('day');
 }
 
 function closeSheet() {
   const el = $('#sheet');
   el.classList.remove('open');
-  setTimeout(() => { el.hidden = true; }, 200);
+  setTimeout(() => { if (!ui.sheetMode) el.hidden = true; }, 200);
   ui.sheetDate = null;
+  ui.sheetMode = null;
 }
 
 function renderSheet() {
+  if (ui.sheetMode === 'vorhol') return renderVorholSheet();
   const s = ui.sheetDate;
   const sel = ui.sheetSel;
   const kw = isoWeek(s).week;
@@ -559,8 +686,9 @@ function renderSheet() {
       <button type="button" class="btn" data-act="day">Nur diesen Tag: ${SHIFT_TYPES[sel].name}</button>
       <button type="button" class="btn" data-act="week">Ganze Woche (KW ${kw}): ${SHIFT_TYPES[sel].name}</button>
       ${isOverride ? '<button type="button" class="btn" data-act="reset">↺ Zurück zum automatischen Plan</button>' : ''}
-      <button type="button" class="btn ghost" data-close>Schließen</button>
-    </div>`;
+    </div>
+    ${vorholDayBox(s)}
+    <button type="button" class="btn ghost" data-close>Schließen</button>`;
 }
 
 function applyAuto(s, code) {
@@ -688,7 +816,7 @@ function render() {
   document.documentElement.style.setProperty('--fer', colorOf('ferien'));
   $('#title').textContent = TITLES[ui.tab];
   document.querySelectorAll('.tabbar button').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
-  if (ui.sheetDate) renderSheet();
+  if (ui.sheetMode) renderSheet();
 }
 
 function setTab(tab) {
@@ -718,6 +846,32 @@ document.addEventListener('click', (e) => {
   const d = t.dataset;
 
   if (d.home !== undefined) return goToday('month');
+  if (d.vorhol !== undefined) return showSheet('vorhol');
+  if (d.vhstep) { addVorhol(ui.sheetDate, +d.vhstep); return render(); }
+  if (d.vhclear !== undefined) { delete data.vorhol.entries[ui.sheetDate]; save(); return render(); }
+  if (d.vhsign) { ui.vhSign = +d.vhsign; return renderSheet(); }
+  if (d.vhq) { ui.vhHours = d.vhq; return renderSheet(); }
+  if (d.vhdel) { delete data.vorhol.entries[d.vhdel]; save(); return render(); }
+  if (d.vhadd !== undefined) {
+    const h = parseHours(ui.vhHours);
+    if (!h) return toast('Bitte Stunden eingeben, z. B. 0.25');
+    const date = ui.vhDate || todayISO();
+    const v = ui.vhSign * Math.abs(h);
+    addVorhol(date, v);
+    ui.vhHours = '';
+    toast(`✓ ${fmtHours(v)} Std am ${fmtShort(date)} eingetragen`);
+    return render();
+  }
+  if (d.vhsavestart !== undefined) {
+    const h = parseHours($('#vhStart').value);
+    const date = $('#vhStartDate').value;
+    if (h === null || !date) return toast('Bitte Stunden und Datum eingeben');
+    data.vorhol.start = h;
+    data.vorhol.startDate = date;
+    save();
+    toast('✓ Stand gespeichert');
+    return render();
+  }
   if (d.tab) return setTab(d.tab);
   if (d.goto) return setTab(d.goto);
   if (d.close !== undefined) return closeSheet();
@@ -815,12 +969,16 @@ function onVacInput(el) {
 }
 
 document.addEventListener('input', (e) => {
-  if (e.target.id === 'vacFrom' || e.target.id === 'vacTo') onVacInput(e.target);
+  const el = e.target;
+  if (el.id === 'vacFrom' || el.id === 'vacTo') onVacInput(el);
+  else if (el.id === 'vhHours') { ui.vhHours = el.value; const hint = $('#vhHint'); if (hint) hint.textContent = vhHint(); }
+  else if (el.id === 'vhDate') ui.vhDate = el.value;
 });
 
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'vacFrom' || el.id === 'vacTo') return onVacInput(el);
+  if (el.id === 'vhDate') { ui.vhDate = el.value; return; }
   if (el.id === 'startDate' && el.value) { data.setup.start = mondayOf(el.value); save(); render(); }
   else if (el.id === 'blSelect') changeState(el.value);
   else if (el.id === 'vacTotal') { data.vacationDays = Math.max(0, parseInt(el.value, 10) || 0); save(); render(); }
@@ -864,7 +1022,7 @@ document.addEventListener('touchend', (e) => {
   if (Math.abs(dx) > 60) moveMonth(dx < 0 ? 1 : -1);
 }, { passive: true });
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheetDate) closeSheet(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheetMode) closeSheet(); });
 
 // Nach Mitternacht oder beim Zurückkehren „Heute“ aktualisieren
 document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });

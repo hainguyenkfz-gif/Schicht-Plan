@@ -1,8 +1,8 @@
 // Offline-Cache für die App. Bei Änderungen VERSION erhöhen.
-const VERSION = 'hai-schichtplan-v2';
+const VERSION = 'hai-schichtplan-v3';
 const FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
-  'js/app.js', 'js/dates.js', 'js/shifts.js', 'js/holidays.js',
+  'js/app.js', 'js/dates.js', 'js/shifts.js', 'js/holidays.js', 'js/vorhol.js', 'fonts/DSEG7Classic-Bold.woff2',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
 ];
 
