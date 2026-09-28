@@ -60,6 +60,7 @@ const ui = {
   sheetDate: null,
   sheetMode: null,
   vhSign: 1,
+  vhStartSign: null,
   sheetSel: null,
 };
 
@@ -550,6 +551,7 @@ function vorholDayBox(s) {
     <div class="vh-quick">
       ${[-8, -1, -0.5, 0.5, 1, 2].map((q) => `<button type="button" data-vhstep="${q}" class="${q > 0 ? 'plus' : 'minus'}">${q > 0 ? '+' : '−'}${Math.abs(q).toFixed(2)}</button>`).join('')}
     </div>
+    ${inStartValue(s) ? `<p class="muted small center">⚠️ Dieser Tag ${IN_START_MSG}.</p>` : ''}
     ${h ? '<button type="button" class="btn ghost small-btn" data-vhclear>Eintrag löschen</button>' : ''}
   </div>`;
 }
@@ -568,6 +570,7 @@ function renderVorholSheet() {
       <button type="button" class="del-btn" data-vhdel="${d}" aria-label="Eintrag löschen">🗑️</button>
     </li>`;
   }).join('');
+  const startSign = ui.vhStartSign ?? (v.start < 0 ? -1 : 1);
   const row = (label, val, date = '') => `<div class="vh-row"><span>${label}${date ? ` <small>${date}</small>` : ''}</span><b class="${vhClass(val)}">${fmtHours(val)} Std</b></div>`;
 
   $('#sheetBody').innerHTML = `
@@ -602,8 +605,12 @@ function renderVorholSheet() {
       <summary>Stand aus der Firma übernehmen</summary>
       <p class="muted small">Trage den Wert „Aktuell“ aus dem Firmen-System ein, z. B. 11.65 Std vom 27.09.2026.
         Einträge bis zu diesem Datum sind darin schon enthalten.</p>
+      <div class="seg vh-sign">
+        <button type="button" data-vhstartsign="1" class="${startSign > 0 ? 'active plus' : ''}">＋ Plus</button>
+        <button type="button" data-vhstartsign="-1" class="${startSign < 0 ? 'active minus' : ''}">− Minus</button>
+      </div>
       <div class="vac-form">
-        <label>Stunden<input type="text" inputmode="decimal" id="vhStart" value="${v.startDate ? v.start : ''}" placeholder="z. B. 11.65 oder -3.5"></label>
+        <label>Stunden<input type="text" inputmode="decimal" id="vhStart" value="${v.startDate ? Math.abs(v.start) : ''}" placeholder="z. B. 11.65"></label>
         <label>Stand vom<input type="date" id="vhStartDate" value="${v.startDate || t}"></label>
       </div>
       <button type="button" class="btn" data-vhsavestart>Stand speichern</button>
@@ -615,7 +622,13 @@ function renderVorholSheet() {
     <button type="button" class="btn ghost" data-close>Schließen</button>`;
 }
 
+// Tage bis einschließlich „Stand vom“ stecken schon im Firmen-Stand.
+const inStartValue = (date) => !!data.vorhol.startDate && date <= data.vorhol.startDate;
+const IN_START_MSG = `ist im Firmen-Stand schon enthalten und zählt nicht extra`;
+
 function vhHint() {
+  const date = ui.vhDate || todayISO();
+  if (inStartValue(date)) return `⚠️ Der ${fmtShort(date)} ${IN_START_MSG}. Bitte ein späteres Datum wählen.`;
   const h = parseHours(ui.vhHours);
   if (ui.vhHours && h === null) return '⚠️ Bitte eine Zahl eingeben, z. B. 0.25, 1,5 oder 1:30';
   if (!h) return 'Plus = Überstunden, Minus = früher gegangen / Freischicht';
@@ -653,6 +666,7 @@ function closeSheet() {
   setTimeout(() => { if (!ui.sheetMode) el.hidden = true; }, 200);
   ui.sheetDate = null;
   ui.sheetMode = null;
+  ui.vhStartSign = null;
 }
 
 function renderSheet() {
@@ -850,6 +864,16 @@ document.addEventListener('click', (e) => {
   if (d.vhstep) { addVorhol(ui.sheetDate, +d.vhstep); return render(); }
   if (d.vhclear !== undefined) { delete data.vorhol.entries[ui.sheetDate]; save(); return render(); }
   if (d.vhsign) { ui.vhSign = +d.vhsign; return renderSheet(); }
+  if (d.vhstartsign) {
+    ui.vhStartSign = +d.vhstartsign;
+    // Eingetippte Werte beim Neuzeichnen behalten
+    const keep = { v: $('#vhStart').value, d: $('#vhStartDate').value };
+    renderSheet();
+    $('#vhStart').value = keep.v.replace(/^\s*[-−]/, '');
+    $('#vhStartDate').value = keep.d;
+    $('.vh-start').open = true;
+    return;
+  }
   if (d.vhq) { ui.vhHours = d.vhq; return renderSheet(); }
   if (d.vhdel) { delete data.vorhol.entries[d.vhdel]; save(); return render(); }
   if (d.vhadd !== undefined) {
@@ -859,14 +883,18 @@ document.addEventListener('click', (e) => {
     const v = ui.vhSign * Math.abs(h);
     addVorhol(date, v);
     ui.vhHours = '';
-    toast(`✓ ${fmtHours(v)} Std am ${fmtShort(date)} eingetragen`);
+    toast(inStartValue(date) ? `Gespeichert – aber der ${fmtShort(date)} ${IN_START_MSG}` : `✓ ${fmtHours(v)} Std am ${fmtShort(date)} eingetragen`);
     return render();
   }
   if (d.vhsavestart !== undefined) {
-    const h = parseHours($('#vhStart').value);
+    const raw = $('#vhStart').value;
+    const h = parseHours(raw);
     const date = $('#vhStartDate').value;
     if (h === null || !date) return toast('Bitte Stunden und Datum eingeben');
-    data.vorhol.start = h;
+    // Minus-Taste fehlt auf Handy-Zahlentastaturen – Vorzeichen kommt vom Plus/Minus-Knopf
+    const sign = /^\s*[-−]/.test(raw) ? -1 : (ui.vhStartSign ?? (data.vorhol.start < 0 ? -1 : 1));
+    data.vorhol.start = round2(sign * Math.abs(h));
+    ui.vhStartSign = null;
     data.vorhol.startDate = date;
     save();
     toast('✓ Stand gespeichert');
@@ -972,13 +1000,13 @@ document.addEventListener('input', (e) => {
   const el = e.target;
   if (el.id === 'vacFrom' || el.id === 'vacTo') onVacInput(el);
   else if (el.id === 'vhHours') { ui.vhHours = el.value; const hint = $('#vhHint'); if (hint) hint.textContent = vhHint(); }
-  else if (el.id === 'vhDate') ui.vhDate = el.value;
+  else if (el.id === 'vhDate') { ui.vhDate = el.value; const hint = $('#vhHint'); if (hint) hint.textContent = vhHint(); }
 });
 
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'vacFrom' || el.id === 'vacTo') return onVacInput(el);
-  if (el.id === 'vhDate') { ui.vhDate = el.value; return; }
+  if (el.id === 'vhDate') { ui.vhDate = el.value; const hint = $('#vhHint'); if (hint) hint.textContent = vhHint(); return; }
   if (el.id === 'startDate' && el.value) { data.setup.start = mondayOf(el.value); save(); render(); }
   else if (el.id === 'blSelect') changeState(el.value);
   else if (el.id === 'vacTotal') { data.vacationDays = Math.max(0, parseInt(el.value, 10) || 0); save(); render(); }
