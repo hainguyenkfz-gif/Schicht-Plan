@@ -1,0 +1,10 @@
+{
+  "appId": "io.github.hainguyenkfzgif.schichtplan",
+  "appName": "HAI Schichtplan",
+  "webDir": "www",
+  "backgroundColor": "#F2F2F7",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "cover" }
+  }
+}

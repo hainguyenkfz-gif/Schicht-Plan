@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenschutz – HAI Schichtplan</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <style>
+    :root { --bg: #F2F2F7; --card: #fff; --text: #1C1C1E; --muted: #6E6E73; --accent: #007AFF; color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #000; --card: #1C1C1E; --text: #F2F2F7; --muted: #98989F; --accent: #0A84FF; } }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    .card { background: var(--card); border-radius: 16px; padding: 20px; margin: 14px 0; }
+    h1 { font-size: 28px; margin: 8px 0 4px; }
+    h2 { font-size: 19px; margin: 0 0 8px; }
+    .hai { font-weight: 900; background: linear-gradient(100deg, #FFB300, #FF5E7E, #1E88E5, #5E35B1); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .muted { color: var(--muted); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <h1><span class="hai">HAI</span> Schichtplan – Datenschutzerklärung</h1>
+  <p class="muted">Stand: 29.09.2026</p>
+
+  <div class="card">
+    <h2>Kurz gesagt</h2>
+    <p>Die App speichert alle Eingaben (Schichten, Urlaub, Vorholzeit, Einstellungen) <b>nur auf deinem Gerät</b>.
+    Es gibt kein Benutzerkonto, keine Werbung, keine Analyse- oder Tracking-Werkzeuge. Der Entwickler erhält keine Daten von dir.</p>
+  </div>
+
+  <div class="card">
+    <h2>1. Verantwortlicher</h2>
+    <p>[VORNAME NACHNAME]<br>[STRASSE HAUSNUMMER]<br>[PLZ ORT]<br>
+    E-Mail: <a href="mailto:[E-MAIL]">[E-MAIL]</a></p>
+  </div>
+
+  <div class="card">
+    <h2>2. Welche Daten verarbeitet die App?</h2>
+    <p>Deine Einträge werden ausschließlich im lokalen Speicher der App auf deinem Gerät abgelegt.
+    Sie werden nicht an den Entwickler oder an Dritte übertragen. Wenn du die App löschst, werden auch diese Daten gelöscht.</p>
+    <p>Eine Sicherungsdatei oder einen Kalender-Export erstellst du nur selbst. Wohin du diese Datei weitergibst
+    (z. B. Dateien-App, Kalender), entscheidest du.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Abruf der Schulferien</h2>
+    <p>Um die Schulferien deines Bundeslandes anzuzeigen, ruft die App öffentliche Ferientermine ab
+    von <a href="https://www.openholidaysapi.org" target="_blank" rel="noopener">openholidaysapi.org</a>
+    und ersatzweise von <a href="https://ferien-api.de" target="_blank" rel="noopener">ferien-api.de</a>.
+    Dabei wird nur das Bundesland und das Jahr abgefragt. Wie bei jedem Internetabruf erhält der jeweilige Server
+    technisch bedingt deine IP-Adresse. Es werden keine Schichtdaten übertragen.
+    Die Feiertage berechnet die App selbst, ohne Internet.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Web-Version</h2>
+    <p>Die Web-Version wird über GitHub Pages (GitHub Inc.) bereitgestellt. Beim Aufruf verarbeitet GitHub
+    technisch notwendige Zugriffsdaten (z. B. IP-Adresse) zur Auslieferung der Seite.
+    Details: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.</p>
+  </div>
+
+  <div class="card">
+    <h2>5. Deine Rechte</h2>
+    <p>Da der Entwickler keine personenbezogenen Daten von dir speichert, kann er dazu auch keine Auskunft geben.
+    Deine Daten auf dem Gerät kannst du jederzeit in der App löschen („Plan“ → „Alle Schichten löschen“) oder
+    indem du die App entfernst. Bei Fragen erreichst du den Verantwortlichen unter der oben genannten E-Mail-Adresse.
+    Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.</p>
+  </div>
+
+  <p class="muted"><a href="./">← Zurück zur App</a></p>
+</main>
+</body>
+</html>
