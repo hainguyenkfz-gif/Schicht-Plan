@@ -8,6 +8,12 @@ import { round2, parseHours, fmtHours, fmtHM, vorholBalance } from './vorhol.js'
 
 // ---------------------------------------------------------------- Daten
 
+// Läuft die App als echte App aus dem App Store / Google Play (Capacitor)?
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const plugin = (name) => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[name]) || null;
+const WEB_URL = 'https://hainguyenkfz-gif.github.io/Schicht-Plan/';
+const PRIVACY_URL = `${WEB_URL}datenschutz.html`;
+
 const KEY = 'schichtplan:v1';
 
 const DEFAULT_COLORS = {
@@ -410,7 +416,7 @@ function renderSettings() {
 
     <div class="card">
       <h3>Daten</h3>
-      <button type="button" class="btn" data-ics>📲 In iPhone-Kalender exportieren (.ics)</button>
+      <button type="button" class="btn" data-ics>📲 In Handy-Kalender exportieren (.ics)</button>
       <button type="button" class="btn" data-backup>💾 Sicherung speichern</button>
       <label class="btn file">📂 Sicherung laden<input type="file" accept="application/json,.json" id="restore" hidden></label>
       <button type="button" class="btn danger" data-clear>🗑️ Alle Schichten löschen</button>
@@ -420,7 +426,8 @@ function renderSettings() {
       <p class="muted small">Jeder bekommt seinen eigenen, leeren Schichtplan. Deine Einträge bleiben bei dir.</p>
       <button type="button" class="btn primary" data-shareapp>📤 App-Link teilen</button>
     </div>
-    <p class="muted small center">Alle Daten bleiben nur auf deinem iPhone gespeichert.</p>
+    <p class="muted small center">Alle Daten bleiben nur auf deinem Handy gespeichert.</p>
+    <p class="muted small center"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Datenschutz</a></p>
     <p class="credit"><span class="hai">HAI</span> Schichtplan · © ${new Date().getFullYear()} Hai</p>
   `;
 }
@@ -513,7 +520,7 @@ function renderVacation() {
       <h3>Mein Urlaub ${y}</h3>
       ${list ? `<ul class="list">${list}</ul>` : '<p class="muted">Noch kein Urlaub eingetragen.</p>'}
       ${singles.length ? `<p class="muted small">Einzelne Urlaubstage aus dem Kalender: ${singles.map(fmtShort).join(', ')}</p>` : ''}
-      <button type="button" class="btn" data-vacics>📲 Urlaub in iPhone-Kalender exportieren</button>
+      <button type="button" class="btn" data-vacics>📲 Urlaub in Handy-Kalender exportieren</button>
     </div>
     <p class="muted small center">Als Urlaubstag zählen nur Tage, an denen du laut Plan arbeiten würdest – ohne Feiertage.</p>
   `;
@@ -742,7 +749,22 @@ function sheetAction(act) {
 
 // ---------------------------------------------------------------- Export / Sicherung
 
+// In der Store-App: Datei in den Cache schreiben und über das Teilen-Menü anbieten.
+async function shareNativeFile(name, text) {
+  const fs = plugin('Filesystem');
+  const share = plugin('Share');
+  if (!fs || !share) return false;
+  try {
+    const { uri } = await fs.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+    await share.share({ title: name, files: [uri] });
+  } catch (e) {
+    if (!/cancel/i.test(String(e && e.message))) toast('Teilen nicht möglich');
+  }
+  return true;
+}
+
 function downloadFile(name, text, type) {
+  if (NATIVE) { shareNativeFile(name, text); return; }
   const blob = new Blob([text], { type });
   // Als Home-Bildschirm-App gehen Downloads auf dem iPhone nicht zuverlässig – dort das Teilen-Menü nutzen.
   if (navigator.standalone && typeof File !== 'undefined') {
@@ -936,9 +958,12 @@ document.addEventListener('click', (e) => {
     return toast(`${n} Urlaub-Termin${n === 1 ? '' : 'e'} – Datei öffnen und „Alle hinzufügen“ tippen`);
   }
   if (d.shareapp !== undefined) {
-    const url = location.href.split('#')[0];
-    if (navigator.share) {
-      navigator.share({ title: 'HAI Schichtplan', text: 'Mein Schichtplan mit Feiertagen & Ferien – kostenlos:', url }).catch(() => {});
+    const url = WEB_URL;
+    const text = 'Mein Schichtplan mit Feiertagen & Ferien – kostenlos:';
+    if (NATIVE && plugin('Share')) {
+      plugin('Share').share({ title: 'HAI Schichtplan', text, url }).catch(() => {});
+    } else if (navigator.share) {
+      navigator.share({ title: 'HAI Schichtplan', text, url }).catch(() => {});
     } else {
       navigator.clipboard && navigator.clipboard.writeText(url);
       toast('Link kopiert');
@@ -1057,6 +1082,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) rend
 
 render();
 
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if (!NATIVE && 'serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

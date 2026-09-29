@@ -43,6 +43,18 @@ Die App läuft als Web-App direkt auf dem iPhone (über Safari „Zum Home-Bilds
 
 > Hinweis: GitHub Pages ist bei **öffentlichen** Repositories kostenlos. Für private Repositories braucht man GitHub Pro.
 
+## App Store & Google Play
+
+Die App gibt es zusätzlich als echte App für iPhone (`ios/`) und Android (`android/`), gebaut mit
+[Capacitor](https://capacitorjs.com). Die Anleitung zum Veröffentlichen und die Store-Texte stehen in
+[`docs/APP-STORE.md`](docs/APP-STORE.md). Die Datenschutzerklärung liegt in `datenschutz.html`.
+
+```bash
+npm install
+npm run ios       # Web-App nach www/ kopieren, synchronisieren, Xcode öffnen
+npm run android   # dasselbe für Android Studio
+```
+
 ## Datenquellen
 
 - **Feiertage** werden in der App berechnet (Osterformel und Landesregeln). Teilweise geltende Feiertage wie

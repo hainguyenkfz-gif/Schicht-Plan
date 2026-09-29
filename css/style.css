@@ -19,6 +19,9 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 4px 16px rgba(0, 0, 0, .04);
   --radius: 16px;
   --hol: #E53935;
+  /* Sichere Ränder (Notch/Home-Leiste); Android-App liefert sie als --safe-area-inset-* */
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   --fer: #43A047;
   color-scheme: light dark;
 }
@@ -45,7 +48,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(76px + var(--sab));
   -webkit-text-size-adjust: 100%;
 }
 
@@ -57,7 +60,7 @@ button { cursor: pointer; }
 .topbar {
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
-  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  padding: calc(10px + var(--sat)) 16px 10px;
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
@@ -87,7 +90,7 @@ main { max-width: 640px; margin: 0 auto; padding: 4px 16px 16px; }
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
   display: grid; grid-template-columns: repeat(5, 1fr);
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  padding: 6px 4px calc(6px + var(--sab));
   background: color-mix(in srgb, var(--card) 88%, transparent);
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
   border-top: 1px solid var(--line);
@@ -274,7 +277,7 @@ select { width: 100%; font-size: 17px; }
 .sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .35); opacity: 0; transition: opacity .2s; }
 .sheet {
   position: absolute; left: 0; right: 0; bottom: 0; max-width: 640px; margin: 0 auto;
-  background: var(--card); border-radius: 20px 20px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--card); border-radius: 20px 20px 0 0; padding: 8px 16px calc(16px + var(--sab));
   transform: translateY(100%); transition: transform .22s ease-out; max-height: 88vh; overflow-y: auto;
 }
 .sheet-wrap.open .sheet { transform: none; }
@@ -296,7 +299,7 @@ select { width: 100%; font-size: 17px; }
 .choice.active { opacity: 1; box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--c); transform: scale(1.03); }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: calc(90px + var(--sab)); transform: translateX(-50%);
   background: rgba(28, 28, 30, .92); color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px;
   z-index: 30; max-width: calc(100% - 32px); text-align: center;
 }
@@ -390,3 +393,5 @@ select { width: 100%; font-size: 17px; }
 .vh-start .btn { background: var(--card); }
 .vh-amount { font-weight: 800; font-variant-numeric: tabular-nums; }
 .list .link { border: 0; background: none; text-align: left; padding: 0; color: inherit; }
+
+a { color: var(--accent); }
