@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 www/
+
+# App-Signaturschlüssel niemals hochladen
+*.jks
+*.keystore
+android/app/release/
