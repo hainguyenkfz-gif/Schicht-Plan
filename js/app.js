@@ -1,8 +1,8 @@
 import {
   iso, addDays, weekday, mondayOf, isoWeek, todayISO, daysInMonth, daysBetween,
-  MONTHS, WEEKDAYS, fmtShort, fmtDate, fmtLong,
+  MONTHS, WEEKDAYS, WEEKDAYS_LONG, fmtShort, fmtDate, fmtLong,
 } from './dates.js';
-import { SHIFT_TYPES, buildOrder, addPlan, shiftOn, isWorkday } from './shifts.js';
+import { SHIFT_TYPES, buildOrder, addPlan, shiftOn, isWorkday, blockStart, weekStartOf } from './shifts.js';
 import { STATES, stateName, publicHolidays, loadSchoolHolidays } from './holidays.js';
 import { round2, parseHours, fmtHours, fmtHM, vorholBalance } from './vorhol.js';
 
@@ -332,7 +332,7 @@ const WORKDAY_PRESETS = { 'Mo–Fr': [0, 1, 2, 3, 4], 'Mo–Sa': [0, 1, 2, 3, 4,
 
 function draftPlan(setup = data.setup) {
   const order = buildOrder(setup.count, setup.direction);
-  const start = mondayOf(setup.start);
+  const start = weekStartOf(setup.start, blockStart(setup.workdays));
   const endYear = +start.slice(0, 4) + (setup.until === 'next' ? 1 : 0);
   return {
     order, start, weeksPer: setup.weeksPer, workdays: [...setup.workdays],
@@ -350,7 +350,16 @@ function renderSettings() {
   const s = data.setup;
   const draft = draftPlan();
   const startY = +draft.start.slice(0, 4);
-  const wdKey = Object.keys(WORKDAY_PRESETS).find((k) => WORKDAY_PRESETS[k].join() === s.workdays.join()) || 'Mo–Fr';
+  const sortedWd = [...s.workdays].sort((a, b) => a - b);
+  const wdKey = Object.keys(WORKDAY_PRESETS).find((k) => WORKDAY_PRESETS[k].join() === sortedWd.join()) || '';
+  const ws = blockStart(s.workdays);
+  // Arbeitstage in Block-Reihenfolge, z. B. Mi Do Fr Sa So Mo
+  const blockDays = [0, 1, 2, 3, 4, 5, 6].map((i) => (ws + i) % 7).filter((d) => s.workdays.includes(d));
+  const blockRange = (wk) => {
+    const a = addDays(wk, (blockDays[0] - ws + 7) % 7);
+    const b = addDays(wk, (blockDays[blockDays.length - 1] - ws + 7) % 7);
+    return `${WEEKDAYS[weekday(a)]} ${fmtShort(a)} – ${WEEKDAYS[weekday(b)]} ${fmtShort(b)}`;
+  };
 
   let preview = '';
   for (let i = 0; i < 8; i++) {
@@ -359,7 +368,7 @@ function renderSettings() {
     const code = draft.order[(draft.startIndex + Math.floor(i / draft.weeksPer)) % draft.order.length];
     const kw = isoWeek(wk).week;
     preview += `<li><span>KW ${kw} <small>(${kw % 2 === 0 ? 'gerade' : 'ungerade'})</small></span>
-      <small>${fmtShort(wk)} – ${fmtShort(addDays(wk, 6))}</small>
+      <small>${blockRange(wk)}</small>
       <span class="chip" style="${shiftStyle(code)}">${SHIFT_TYPES[code].name}</span></li>`;
   }
 
@@ -377,12 +386,18 @@ function renderSettings() {
       ${seg('weeksPer', [[1, 'jede Woche'], [2, 'alle 2 Wochen']], s.weeksPer)}
       <h4>Arbeitstage</h4>
       ${seg('workdays', Object.keys(WORKDAY_PRESETS).map((k) => [k, k]), wdKey)}
+      <p class="muted small" style="margin:10px 0 6px">Oder einzelne Tage antippen:</p>
+      <div class="wd-picker">
+        ${WEEKDAYS.map((w, i) => `<button type="button" data-wd="${i}" class="${s.workdays.includes(i) ? 'active' : ''}" aria-pressed="${s.workdays.includes(i)}">${w}</button>`).join('')}
+      </div>
+      <p class="muted small">Schichtwoche: <b>${WEEKDAYS_LONG[blockDays[0]]} bis ${WEEKDAYS_LONG[blockDays[blockDays.length - 1]]}</b>
+        (${blockDays.length} ${blockDays.length === 1 ? 'Tag' : 'Tage'}) – die Schicht wechselt immer am ${WEEKDAYS_LONG[ws]}.</p>
     </div>
 
     <div class="card">
       <h3>2. Womit beginnst du?</h3>
       <label class="field"><span>Startwoche</span><input type="date" id="startDate" value="${draft.start}"></label>
-      <p class="muted small">KW ${isoWeek(draft.start).week} · ${fmtDate(draft.start)} – ${fmtDate(addDays(draft.start, 6))}</p>
+      <p class="muted small">KW ${isoWeek(draft.start).week} · ${blockRange(draft.start)}</p>
       <h4>In dieser Woche habe ich</h4>
       ${seg('startShift', shifts.map((c) => [c, SHIFT_TYPES[c].name]), s.startShift)}
       <h4>Automatisch eintragen bis</h4>
@@ -705,7 +720,7 @@ function renderSheet() {
         ⚡ Ab dieser Woche „${SHIFT_TYPES[sel].name}“ – automatisch bis Ende ${endY}</button>` : ''}
       ${sel === 'U' ? `<button type="button" class="btn primary big" data-act="vacrange">🏖️ Urlaub ab hier – Zeitraum eintragen</button>` : ''}
       <button type="button" class="btn" data-act="day">Nur diesen Tag: ${SHIFT_TYPES[sel].name}</button>
-      <button type="button" class="btn" data-act="week">Ganze Woche (KW ${kw}): ${SHIFT_TYPES[sel].name}</button>
+      <button type="button" class="btn" data-act="week">Ganze Schichtwoche (${(() => { const f = weekStartOf(s, blockStart(data.setup.workdays)); return `${fmtShort(f)}–${fmtShort(addDays(f, 6))}`; })()}): ${SHIFT_TYPES[sel].name}</button>
       ${isOverride ? '<button type="button" class="btn" data-act="reset">↺ Zurück zum automatischen Plan</button>' : ''}
     </div>
     ${vorholDayBox(s)}
@@ -713,7 +728,7 @@ function renderSheet() {
 }
 
 function applyAuto(s, code) {
-  const setup = { ...data.setup, start: mondayOf(s), startShift: code };
+  const setup = { ...data.setup, start: s, startShift: code };
   if (code === 'N' && setup.count === 2) setup.count = 3;
   data.setup = setup;
   const plan = draftPlan(setup);
@@ -738,9 +753,12 @@ function sheetAction(act) {
   if (act === 'auto') applyAuto(s, sel);
   else if (act === 'day') data.overrides[s] = sel;
   else if (act === 'week') {
-    const mon = mondayOf(s);
-    const days = SHIFT_TYPES[sel].work ? data.setup.workdays : [0, 1, 2, 3, 4, 5, 6];
-    for (const d of days) data.overrides[addDays(mon, d)] = sel;
+    // ganze Schichtwoche (z. B. Mi–Mo), Arbeitsschichten nur an Arbeitstagen
+    const from = weekStartOf(s, blockStart(data.setup.workdays));
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(from, i);
+      if (!SHIFT_TYPES[sel].work || data.setup.workdays.includes(weekday(d))) data.overrides[d] = sel;
+    }
   } else if (act === 'reset') delete data.overrides[s];
   save();
   closeSheet();
@@ -972,6 +990,17 @@ document.addEventListener('click', (e) => {
   }
   if (d.retry !== undefined) { delete ferienState[`${data.bl}:${ui.year}`]; return render(); }
 
+  if (d.wd !== undefined) {
+    const i = +d.wd;
+    const cur = data.setup.workdays;
+    if (cur.includes(i)) {
+      if (cur.length === 1) return toast('Mindestens ein Arbeitstag');
+      data.setup.workdays = cur.filter((x) => x !== i);
+    } else data.setup.workdays = [...cur, i].sort((a, b) => a - b);
+    save();
+    return render();
+  }
+
   const segEl = t.closest('[data-seg]');
   if (segEl && d.v !== undefined) {
     const name = segEl.dataset.seg;
@@ -1032,7 +1061,7 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'vacFrom' || el.id === 'vacTo') return onVacInput(el);
   if (el.id === 'vhDate') { ui.vhDate = el.value; const hint = $('#vhHint'); if (hint) hint.textContent = vhHint(); return; }
-  if (el.id === 'startDate' && el.value) { data.setup.start = mondayOf(el.value); save(); render(); }
+  if (el.id === 'startDate' && el.value) { data.setup.start = el.value; save(); render(); }
   else if (el.id === 'blSelect') changeState(el.value);
   else if (el.id === 'vacTotal') { data.vacationDays = Math.max(0, parseInt(el.value, 10) || 0); save(); render(); }
   else if (el.dataset.color) { data.colors[el.dataset.color] = el.value; save(); render(); }
