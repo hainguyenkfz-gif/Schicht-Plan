@@ -1,4 +1,4 @@
-import { dayNum, weekday } from './dates.js';
+import { dayNum, weekday, addDays } from './dates.js';
 
 // F/S/N sind Arbeitsschichten, X/U/K manuelle Markierungen.
 export const SHIFT_TYPES = {
@@ -10,12 +10,31 @@ export const SHIFT_TYPES = {
   K: { name: 'Krank', short: 'K', work: false },
 };
 
+// Erster Tag des Arbeitsblocks, z. B. Mi–Mo → Mittwoch (2). Die Schichtwoche beginnt dort,
+// damit die Schicht nicht mitten im Block wechselt. Mo–Fr und Mo–So → Montag (0).
+export function blockStart(workdays) {
+  const set = new Set(workdays);
+  if (!set.size || set.size === 7) return 0;
+  let best = 0;
+  let bestGap = -1;
+  for (const d of [...set].sort((a, b) => a - b)) {
+    if (set.has((d + 6) % 7)) continue;
+    let gap = 0;
+    while (gap < 7 && !set.has((d + 13 - gap) % 7)) gap++;
+    if (gap > bestGap) { bestGap = gap; best = d; }
+  }
+  return best;
+}
+
+// Beginn der Schichtwoche, in der der Tag s liegt
+export const weekStartOf = (s, ws = 0) => addDays(s, -((weekday(s) - ws + 7) % 7));
+
 export function buildOrder(count, direction = 'fwd') {
   if (count === 2) return ['F', 'S'];
   return direction === 'back' ? ['F', 'N', 'S'] : ['F', 'S', 'N'];
 }
 
-// Ein Plan-Abschnitt: { order, start (Montag), startIndex, weeksPer, workdays: [0..6], end }
+// Ein Plan-Abschnitt: { order, start (erster Tag der Schichtwoche), startIndex, weeksPer, workdays: [0..6], end }
 // Ab der Startwoche wechselt die Schicht alle `weeksPer` Wochen der Reihe nach.
 export function planShift(plan, s) {
   if (!plan || s < plan.start || s > plan.end) return null;

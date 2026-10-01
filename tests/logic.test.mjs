@@ -124,3 +124,19 @@ test('Urlaub: nur Arbeitstage ohne Feiertage, manueller Eintrag hat Vorrang', as
   // Ohne Plan zählen die gewählten Wochentage
   assert.equal(isWorkday({ plans: [], setup: { workdays: [0, 1, 2, 3, 4, 5] } }, '2026-10-10'), true);
 });
+
+test('Arbeitstage frei wählbar: Schichtwoche beginnt am ersten Arbeitstag', async () => {
+  const { blockStart, weekStartOf } = await import('../js/shifts.js');
+  assert.equal(blockStart([0, 1, 2, 3, 4]), 0);          // Mo–Fr
+  assert.equal(blockStart([0, 1, 2, 3, 4, 5, 6]), 0);    // Mo–So
+  assert.equal(blockStart([2, 3, 4, 5, 6, 0]), 2);       // Mi–Mo
+  assert.equal(blockStart([5, 6, 0, 1]), 5);             // Sa–Di
+  assert.equal(blockStart([3]), 3);
+  assert.equal(weekStartOf('2026-10-05', 2), '2026-09-30'); // Mo 05.10. gehört zum Block ab Mi 30.09.
+  assert.equal(weekStartOf('2026-10-07', 2), '2026-10-07');
+  // Mi–Mo im Wechsel Früh/Spät: Montag gehört noch zur Früh-Woche, Dienstag frei
+  const plan = { order: ['F', 'S'], start: '2026-09-30', startIndex: 0, weeksPer: 1, workdays: [2, 3, 4, 5, 6, 0], end: '2026-12-31' };
+  const codes = [];
+  for (let d = '2026-09-30'; d <= '2026-10-08'; d = addDays(d, 1)) codes.push(planShift(plan, d));
+  assert.deepEqual(codes, ['F', 'F', 'F', 'F', 'F', 'F', null, 'S', 'S']);
+});
