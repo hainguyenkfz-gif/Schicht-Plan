@@ -129,7 +129,7 @@ FEIERTAGE & SCHULFERIEN
 • Bundesland mit einem Tipp wechseln
 
 DATENSCHUTZ
-• Kein Konto, keine Werbung, kein Tracking
+• Kein Konto, kein Tracking
 • Alle Daten bleiben nur auf deinem Handy
 
 Hell- und Dunkelmodus. Funktioniert auch offline.
