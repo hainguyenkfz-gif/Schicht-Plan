@@ -1,53 +1,68 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>HAI Schichtplan</title>
-  <meta name="description" content="HAI Schichtplan – Schichtplan für Früh-, Spät- und Nachtschicht mit Feiertagen und Schulferien aller Bundesländer.">
-  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="HAI Schichtplan">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HAI Schichtplan – jetzt als App</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg: #F5F3FD; --card: #fff; --text: #1B1A3A; --muted: #6D6E96; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0E0C1F; --card: #1A1733; --text: #F3F1FF; --muted: #A5A2CC; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: var(--bg); color: var(--text); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .box { width: 100%; max-width: 440px; background: var(--card); border-radius: 26px; padding: 26px 20px 20px; text-align: center;
+    box-shadow: 0 20px 50px rgba(40, 30, 90, .18); }
+  h1 { font-size: 26px; margin: 6px 0 6px; }
+  .hai { font-weight: 900; background: linear-gradient(100deg, #FFB300, #FF5E7E, #1E88E5, #5E35B1); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p { margin: 0 0 14px; color: var(--muted); }
+  ol { text-align: left; margin: 0 0 16px; padding-left: 22px; }
+  a.btn, button.btn { display: block; width: 100%; margin: 10px 0 0; padding: 15px 16px; border: 0; border-radius: 16px;
+    font: 700 17px/1.2 inherit; text-decoration: none; cursor: pointer; }
+  .backup { background: linear-gradient(100deg, #18A0FB, #7B5CFF); color: #fff; }
+  .store { background: #111; color: #fff; }
+  .en { margin-top: 18px; font-size: 14px; }
+  #msg { font-size: 14px; margin-top: 8px; min-height: 20px; color: #0B9E45; }
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand-wrap">
-      <button id="brand" class="brand" type="button" data-home aria-label="HAI Schichtplan – zur Startseite">
-        <span class="hai">HAI</span><span class="brand-rest">Schichtplan</span>
-      </button>
-      <div id="title" class="subtitle"></div>
-    </div>
-    <button id="todayBtn" class="pill" type="button">Heute</button>
-  </header>
-
-  <main id="view" aria-live="polite"></main>
-
-  <nav class="tabbar" aria-label="Navigation">
-    <button data-tab="month" class="active" type="button"><span class="ico">🏠</span><span>Home</span></button>
-    <button data-tab="year" type="button"><span class="ico">🗓️</span><span>Jahr</span></button>
-    <button data-tab="vacation" type="button"><span class="ico">🏖️</span><span>Urlaub</span></button>
-    <button data-tab="holidays" type="button"><span class="ico">🎉</span><span>Feiertage</span></button>
-    <button data-tab="settings" type="button"><span class="ico">⚙️</span><span>Plan</span></button>
-  </nav>
-
-  <div id="sheet" class="sheet-wrap" hidden>
-    <div class="sheet-backdrop" data-close></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-      <div class="grabber"></div>
-      <div id="sheetBody"></div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast" hidden></div>
-
-  <script type="module" src="js/app.js"></script>
-  <script type="module" src="js/notice.js"></script>
+<main class="box">
+  <div style="font-size:46px">📲</div>
+  <h1><span class="hai">HAI</span> Schichtplan ist jetzt eine App</h1>
+  <p>Die Web-Version wurde abgeschaltet. Die App ist kostenlos, ohne Konto und hat ein neues Design.</p>
+  <ol>
+    <li>Hattest du hier Schichten eingetragen? Dann zuerst <b>Sicherung speichern</b>.</li>
+    <li>App laden: <b>iPhone</b> im App Store, <b>Android</b> bei Google Play.</li>
+    <li>In der App: <b>Plan → Sicherung laden</b> – alle Schichten sind wieder da.</li>
+  </ol>
+  <button type="button" class="btn backup" id="backup">💾 Sicherung speichern</button>
+  <div id="msg"></div>
+  <a class="btn store" href="https://apps.apple.com/de/app/hai-schichtplan/id6818241407">🍎 iPhone: Im App Store laden</a>
+  <a class="btn store" href="https://play.google.com/store/apps/details?id=io.github.hainguyenkfzgif.schichtplan">▶ Android: Bei Google Play laden</a>
+  <p class="en">HAI Schichtplan is now an app: save your backup, install the app (App Store / Google Play), then use Plan → Load backup.</p>
+</main>
+<script>
+  // Alte Daten aus dem Browser als Sicherungsdatei speichern (gleiches Format wie die App)
+  document.getElementById('backup').addEventListener('click', function () {
+    var msg = document.getElementById('msg');
+    var raw = null;
+    try { raw = localStorage.getItem('schichtplan:v1'); } catch (e) {}
+    if (!raw) { msg.style.color = '#E0241B'; msg.textContent = 'Auf diesem Gerät sind keine Schichten gespeichert.'; return; }
+    var d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+    var name = 'schichtplan-sicherung-' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '.json';
+    var blob = new Blob([JSON.stringify(JSON.parse(raw), null, 2)], { type: 'application/json' });
+    var file = new File([blob], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'HAI Schichtplan Sicherung' }).catch(function () {});
+    } else {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    msg.style.color = '#0B9E45'; msg.textContent = '✓ Sicherung erstellt – Datei gut aufbewahren.';
+  });
+  // Alten Offline-Speicher der Web-Version entfernen, damit immer diese Seite erscheint
+  if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (r) { r.forEach(function (x) { x.unregister(); }); });
+  if (window.caches) caches.keys().then(function (k) { k.forEach(function (n) { caches.delete(n); }); });
+</script>
 </body>
 </html>
